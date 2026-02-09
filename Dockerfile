@@ -12,6 +12,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Ensure public directory exists (even if empty)
+RUN mkdir -p public
+
 # Build the Next.js app
 RUN npm run build
 
@@ -27,8 +30,8 @@ RUN npm ci --omit=dev
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
 
-# Copy public files if they exist
-COPY --from=builder /app/public /app/public/
+# Create public directory (will be empty but that's OK)
+RUN mkdir -p public
 
 # Expose the port
 EXPOSE 3000
