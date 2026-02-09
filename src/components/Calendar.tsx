@@ -10,7 +10,13 @@ interface CalendarProps {
 }
 
 export default function Calendar({ workouts, onDateSelect, selectedDate }: CalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  
+  // Initialize date on client only to avoid hydration mismatch
+  useEffect(() => {
+    setCurrentDate(new Date());
+  }, []);
+
   const workoutsByDate = new Map<string, WorkoutSession[]>();
 
   // Index workouts by date
@@ -21,6 +27,11 @@ export default function Calendar({ workouts, onDateSelect, selectedDate }: Calen
     }
     workoutsByDate.get(key)!.push(workout);
   });
+
+  // Return early if date not initialized
+  if (!currentDate) {
+    return <div className="bg-white rounded-lg shadow p-6">Loading calendar...</div>;
+  }
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();

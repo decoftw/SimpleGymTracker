@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ExerciseForm, { ExerciseFormData } from './ExerciseForm';
 import { Template, TemplateExercise } from '@/lib/types';
 
@@ -16,10 +16,15 @@ interface WorkoutFormProps {
 
 export default function WorkoutForm({ onSave, templates, onTemplateSave }: WorkoutFormProps) {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [exercises, setExercises] = useState<ExerciseFormData[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Initialize date on client only to avoid hydration mismatch
+  useEffect(() => {
+    setDate(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const handleAddExercise = (exercise: ExerciseFormData) => {
     setExercises([...exercises, exercise]);
