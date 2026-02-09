@@ -1,0 +1,14 @@
+[build]
+builder = "dockerfile"
+dockerfile = "./Dockerfile"
+
+[deploy]
+numReplicas = 1
+startCommand = ""
+restartPolicyMaxRetries = 5
+healthcheckPath = "/"
+healthcheckTimeout = 10
+
+[env]
+NODE_ENV = "production"
+PORT = "3000"
