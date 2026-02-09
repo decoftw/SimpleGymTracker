@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import SearchExercises from './SearchExercises';
+import React, { useState } from 'react';
 
 export interface ExerciseFormData {
   exercise_name: string;
@@ -40,11 +39,32 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     setWeight(0);
     setSets(3);
     setReps(8);
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleSelectSuggestion = (name: string) => {
     setExerciseName(name);
     setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
+  const handleExerciseChange = async (value: string) => {
+    setExerciseName(value);
+    setShowSuggestions(true);
+    
+    if (value.trim() === '') {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`);
+      const results = await response.json();
+      setSuggestions(results);
+    } catch (error) {
+      console.error('Search error:', error);
+    }
   };
 
   return (
@@ -53,22 +73,17 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
         <div>
           <label className="block text-sm font-medium mb-2">Exercise Name</label>
           <div className="relative">
-            <SearchExercises
-              onSearch={setSuggestions}
-              placeholder="e.g., Bench Press, Lateral Raise..."
-            />
             <input
               type="text"
               value={exercise_name}
-              onChange={(e) => {
-                setExerciseName(e.target.value);
-                setShowSuggestions(true);
-              }}
+              onChange={(e) => handleExerciseChange(e.target.value)}
+              onFocus={() => exercise_name && setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               placeholder="e.g., Bench Press, Lateral Raise..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg z-10">
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg z-10 max-h-48 overflow-y-auto">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
