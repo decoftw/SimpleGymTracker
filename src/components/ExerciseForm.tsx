@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 
 export interface ExerciseFormData {
   exercise_name: string;
@@ -23,6 +23,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,21 +60,27 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
       return;
     }
 
-    setShowSuggestions(true);
-    setIsSearching(true);
-    
-    fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`)
-      .then((response) => response.json())
-      .then((results) => {
-        setSuggestions(results);
-      })
-      .catch((error) => {
-        console.error('Search error:', error);
-        setSuggestions([]);
-      })
-      .finally(() => {
-        setIsSearching(false);
-      });
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    debounceTimeout.current = setTimeout(() => {
+      setShowSuggestions(true);
+      setIsSearching(true);
+      
+      fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`)
+        .then((response) => response.json())
+        .then((results) => {
+          setSuggestions(results);
+        })
+        .catch((error) => {
+          console.error('Search error:', error);
+          setSuggestions([]);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    }, 300);
   }, []);
 
   return (

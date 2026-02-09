@@ -95,11 +95,83 @@ To use your own domain:
 
 ## Database Persistence
 
-SQLite database persists automatically in Railway because:
+⚠️ **CRITICAL: Verify Before Deploying**
 
-- **Volume mounting**: `/app` directory is persistent
-- **Database location**: `gym-tracker.db` stored in `/app`
-- **Restart safe**: Data survives app restarts and redeployments
+SQLite database persistence requires Railway to mount a persistent volume. 
+
+### How Railway Handles Persistence
+
+Railway provides persistent storage through:
+- Volumes mounted to specific directories
+- Files in `/app` directory MAY persist depending on Railway plan
+
+### Verification Steps (DO THIS BEFORE PRODUCTION USE)
+
+1. **Deploy the app to Railway**
+2. **Create a test workout:**
+   - Open your deployed app
+   - Add a workout with 2-3 exercises
+   - Note the exact workout title and exercises
+3. **Force a container restart:**
+   - In Railway dashboard, go to your project
+   - Click "Deployments" tab
+   - Click "Redeploy" on the current deployment
+   - Wait for redeployment to complete (~2-3 min)
+4. **Check if data persisted:**
+   - Open your app again
+   - Navigate to the calendar
+   - Check if your test workout is still there
+   - ✅ If YES: Data persists, you're good to go
+   - ❌ If NO: Follow steps below to configure persistent volume
+
+### If Data Does NOT Persist
+
+You need to configure a Railway volume:
+
+1. **In Railway dashboard:**
+   - Go to your project settings
+   - Click "Volumes" tab
+   - Click "New Volume"
+
+2. **Configure volume:**
+   - Mount path: `/app`
+   - Name: `app-data`
+   - Click "Add Volume"
+
+3. **Redeploy:**
+   - Railway will automatically trigger a new deployment
+   - Repeat verification steps above
+
+4. **Alternative: Use PostgreSQL (Not Recommended for MVP):**
+   - Railway offers PostgreSQL as a service
+   - Would require code changes to database layer
+   - Overkill for a personal gym tracker MVP
+
+### Database File Location
+
+- Database file: `/app/gym-tracker.db`
+- WAL file: `/app/gym-tracker.db-wal`
+- SHM file: `/app/gym-tracker.db-shm`
+
+All three files must persist for proper database operation.
+
+### Monitoring Database Size
+
+Free Railway tier includes:
+- 5GB persistent storage
+- Database file size viewable in Railway dashboard under "Metrics"
+
+### Backup Recommendations
+
+Since this is a file-based database:
+1. **Manual backup:**
+   - SSH into Railway container (if available)
+   - Download `gym-tracker.db` file
+   - Store locally or in cloud storage
+
+2. **Future consideration:**
+   - Add export/import feature to app
+   - Allow users to download their workout data as JSON
 
 ## Auto-Deploy on Push
 
@@ -143,6 +215,12 @@ View logs in Railway:
 - First deployment: ~3-5 min (builds Docker image)
 - Subsequent: ~1-2 min (uses cache)
 - Free tier may have slower builds
+
+### Data Loss After Restart
+- **Symptom**: Workouts disappear after container restart or redeployment
+- **Cause**: Railway volume not configured for `/app` directory
+- **Solution**: Follow steps in "Database Persistence" section above to configure volume
+- **Verify**: Use the 3-step verification process (deploy → add data → restart → check)
 
 ## Pricing & Costs
 

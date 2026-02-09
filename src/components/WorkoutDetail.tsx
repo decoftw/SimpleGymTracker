@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WorkoutSession } from '@/lib/types';
 
 interface WorkoutDetailProps {
@@ -10,6 +10,8 @@ interface WorkoutDetailProps {
 }
 
 export default function WorkoutDetail({ workouts, selectedDate, onDelete }: WorkoutDetailProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   if (!selectedDate) {
     return (
       <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
@@ -38,10 +40,13 @@ export default function WorkoutDetail({ workouts, selectedDate, onDelete }: Work
   const handleDelete = async (workoutId: string) => {
     if (confirm('Are you sure you want to delete this workout?')) {
       try {
+        setDeletingId(workoutId);
         await onDelete(workoutId);
       } catch (error) {
         console.error('Error deleting workout:', error);
         alert('Failed to delete workout');
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -57,9 +62,10 @@ export default function WorkoutDetail({ workouts, selectedDate, onDelete }: Work
               <h4 className="text-lg font-semibold">{workout.title}</h4>
               <button
                 onClick={() => handleDelete(workout.id)}
-                className="text-red-500 hover:text-red-700 font-semibold text-sm"
+                disabled={deletingId === workout.id}
+                className="text-red-500 hover:text-red-700 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete
+                {deletingId === workout.id ? 'Deleting...' : 'Delete'}
               </button>
             </div>
 

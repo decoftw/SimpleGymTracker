@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -28,6 +29,7 @@ export default function TemplatesPage() {
   const handleDelete = async (templateId: string) => {
     if (confirm('Are you sure you want to delete this template?')) {
       try {
+        setDeletingId(templateId);
         const response = await fetch(`/api/templates/${templateId}`, {
           method: 'DELETE',
         });
@@ -41,6 +43,8 @@ export default function TemplatesPage() {
       } catch (error) {
         console.error('Error deleting template:', error);
         alert('Failed to delete template');
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -75,7 +79,8 @@ export default function TemplatesPage() {
                 <h3 className="text-xl font-bold">{template.name}</h3>
                 <button
                   onClick={() => handleDelete(template.id)}
-                  className="text-red-500 hover:text-red-700 font-semibold"
+                  disabled={deletingId === template.id}
+                  className="text-red-500 hover:text-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ✕
                 </button>
