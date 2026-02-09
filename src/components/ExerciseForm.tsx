@@ -33,8 +33,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     if (!exercise_name.trim()) {
       alert('Exercise name is required');
       return;
@@ -92,7 +91,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
   }, []);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 mb-6">
+    <div className="bg-white rounded-lg shadow p-6 mb-6">
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">Exercise Name</label>
@@ -155,7 +154,8 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
           </div>
           <div className="flex items-end">
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
             >
               +Add
@@ -163,6 +163,6 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
           </div>
         </div>
       </div>
-    </form>
+    </div>
   );
 }
