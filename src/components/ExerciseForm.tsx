@@ -33,7 +33,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     };
   }, []);
 
-  const handleSubmit = () => {
+  const handleButtonClick = () => {
     if (!exercise_name.trim()) {
       alert('Exercise name is required');
       return;
@@ -60,7 +60,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
 
   const handleExerciseChange = useCallback((value: string) => {
     setExerciseName(value);
-    
+
     if (value.trim() === '') {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -74,7 +74,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     debounceTimeout.current = setTimeout(() => {
       setShowSuggestions(true);
       setIsSearching(true);
-      
+
       fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`)
         .then((response) => response.json())
         .then((results) => {
@@ -90,6 +90,13 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     }, 300);
   }, []);
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleButtonClick();
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
       <div className="space-y-4">
@@ -102,6 +109,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
               onChange={(e) => handleExerciseChange(e.target.value)}
               onFocus={() => exercise_name && setShowSuggestions(true)}
               onBlur={() => setShowSuggestions(false)}
+              onKeyPress={handleKeyPress}
               placeholder="e.g., Bench Press, Lateral Raise..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -111,7 +119,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
                   <button
                     key={index}
                     type="button"
-                    onClick={() => handleSelectSuggestion(suggestion)}
+                    onMouseDown={() => handleSelectSuggestion(suggestion)}
                     className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
                   >
                     {suggestion}
@@ -129,6 +137,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
               type="number"
               value={weight}
               onChange={(e) => setWeight(Number(e.target.value))}
+              onKeyPress={handleKeyPress}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -139,6 +148,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
               min="1"
               value={sets}
               onChange={(e) => setSets(Number(e.target.value))}
+              onKeyPress={handleKeyPress}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -149,13 +159,14 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
               min="1"
               value={reps}
               onChange={(e) => setReps(Number(e.target.value))}
+              onKeyPress={handleKeyPress}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex items-end">
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={handleButtonClick}
               className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
             >
               +Add
