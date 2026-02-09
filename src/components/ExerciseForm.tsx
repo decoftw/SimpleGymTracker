@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 export interface ExerciseFormData {
   exercise_name: string;
@@ -22,6 +22,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
   const [reps, setReps] = useState(initialData?.reps || 8);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,29 +44,37 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
     setShowSuggestions(false);
   };
 
-  const handleSelectSuggestion = (name: string) => {
+  const handleSelectSuggestion = useCallback((name: string) => {
     setExerciseName(name);
     setShowSuggestions(false);
     setSuggestions([]);
-  };
+  }, []);
 
-  const handleExerciseChange = async (value: string) => {
+  const handleExerciseChange = useCallback((value: string) => {
     setExerciseName(value);
-    setShowSuggestions(true);
     
     if (value.trim() === '') {
       setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
-    try {
-      const response = await fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`);
-      const results = await response.json();
-      setSuggestions(results);
-    } catch (error) {
-      console.error('Search error:', error);
-    }
-  };
+    setShowSuggestions(true);
+    setIsSearching(true);
+    
+    fetch(`/api/exercises/search?q=${encodeURIComponent(value)}`)
+      .then((response) => response.json())
+      .then((results) => {
+        setSuggestions(results);
+      })
+      .catch((error) => {
+        console.error('Search error:', error);
+        setSuggestions([]);
+      })
+      .finally(() => {
+        setIsSearching(false);
+      });
+  }, []);
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 mb-6">
@@ -78,7 +87,7 @@ export default function ExerciseForm({ onSubmit, initialData, onCancel }: Exerci
               value={exercise_name}
               onChange={(e) => handleExerciseChange(e.target.value)}
               onFocus={() => exercise_name && setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              onBlur={() => setShowSuggestions(false)}
               placeholder="e.g., Bench Press, Lateral Raise..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
