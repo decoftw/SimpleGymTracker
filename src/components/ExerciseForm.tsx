@@ -1,0 +1,129 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import SearchExercises from './SearchExercises';
+
+export interface ExerciseFormData {
+  exercise_name: string;
+  weight: number;
+  sets: number;
+  reps: number;
+}
+
+interface ExerciseFormProps {
+  onSubmit: (exercise: ExerciseFormData) => void;
+  initialData?: ExerciseFormData;
+  onCancel?: () => void;
+}
+
+export default function ExerciseForm({ onSubmit, initialData, onCancel }: ExerciseFormProps) {
+  const [exercise_name, setExerciseName] = useState(initialData?.exercise_name || '');
+  const [weight, setWeight] = useState(initialData?.weight || 0);
+  const [sets, setSets] = useState(initialData?.sets || 3);
+  const [reps, setReps] = useState(initialData?.reps || 8);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!exercise_name.trim()) {
+      alert('Exercise name is required');
+      return;
+    }
+    onSubmit({
+      exercise_name,
+      weight: Number(weight),
+      sets: Number(sets),
+      reps: Number(reps),
+    });
+    setExerciseName('');
+    setWeight(0);
+    setSets(3);
+    setReps(8);
+  };
+
+  const handleSelectSuggestion = (name: string) => {
+    setExerciseName(name);
+    setShowSuggestions(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Exercise Name</label>
+          <div className="relative">
+            <SearchExercises
+              onSearch={setSuggestions}
+              placeholder="e.g., Bench Press, Lateral Raise..."
+            />
+            <input
+              type="text"
+              value={exercise_name}
+              onChange={(e) => {
+                setExerciseName(e.target.value);
+                setShowSuggestions(true);
+              }}
+              placeholder="e.g., Bench Press, Lateral Raise..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg z-10">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Weight (lbs)</label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Sets</label>
+            <input
+              type="number"
+              min="1"
+              value={sets}
+              onChange={(e) => setSets(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Reps</label>
+            <input
+              type="number"
+              min="1"
+              value={reps}
+              onChange={(e) => setReps(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+            >
+              +Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  );
+}
