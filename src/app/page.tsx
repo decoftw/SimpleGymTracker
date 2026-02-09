@@ -35,20 +35,28 @@ export default function Home() {
   const fetchWorkouts = async () => {
     try {
       const response = await fetch('/api/workouts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch workouts');
+      }
       const data = await response.json();
       setWorkouts(data);
     } catch (error) {
       console.error('Error fetching workouts:', error);
+      setWorkouts([]);
     }
   };
 
   const fetchTemplates = async () => {
     try {
       const response = await fetch('/api/templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
       console.error('Error fetching templates:', error);
+      setTemplates([]);
     }
   };
 

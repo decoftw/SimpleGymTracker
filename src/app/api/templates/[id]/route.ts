@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDatabase from '@/lib/db';
-import { Template, TemplateExercise } from '@/lib/types';
+import { Template, TemplateExercise, CreateTemplateExercise } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { getCurrentUserId } from '@/lib/auth-server';
 
 export async function GET(
   request: NextRequest,
@@ -9,11 +10,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const userId = await getCurrentUserId();
     const db = getDatabase();
 
     const template = db
-      .prepare('SELECT * FROM templates WHERE id = ?')
-      .get(id) as Template | undefined;
+      .prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?')
+      .get(id, userId) as Template | undefined;
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
@@ -26,6 +28,9 @@ export async function GET(
     return NextResponse.json({ ...template, exercises });
   } catch (error) {
     console.error('Error fetching template:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to fetch template' }, { status: 500 });
   }
 }
@@ -36,14 +41,35 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const userId = await getCurrentUserId();
     const db = getDatabase();
     const body = await request.json();
     const { name, exercises } = body;
 
-    // Check if template exists
+    // Validate name
+    if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
+      return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
+    }
+
+    // Validate exercises
+    if (exercises !== undefined && !Array.isArray(exercises)) {
+      return NextResponse.json({ error: 'Exercises must be an array' }, { status: 400 });
+    }
+
+    if (exercises) {
+      for (const exercise of exercises) {
+        if (!exercise.exercise_name || typeof exercise.exercise_name !== 'string' ||
+            typeof exercise.sets !== 'number' || exercise.sets <= 0 ||
+            typeof exercise.reps !== 'number' || exercise.reps <= 0) {
+          return NextResponse.json({ error: 'Invalid exercise data' }, { status: 400 });
+        }
+      }
+    }
+
+    // Check if template exists and belongs to user
     const template = db
-      .prepare('SELECT * FROM templates WHERE id = ?')
-      .get(id) as Template | undefined;
+      .prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?')
+      .get(id, userId) as Template | undefined;
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
@@ -64,7 +90,7 @@ export async function PUT(
         'INSERT INTO template_exercises (id, template_id, exercise_name, sets, reps, order_index) VALUES (?, ?, ?, ?, ?, ?)'
       );
 
-      exercises.forEach((exercise: any, index: number) => {
+      exercises.forEach((exercise: CreateTemplateExercise, index: number) => {
         insertExercise.run(
           uuidv4(),
           id,
@@ -87,6 +113,9 @@ export async function PUT(
     return NextResponse.json({ ...updatedTemplate, exercises: updatedExercises });
   } catch (error) {
     console.error('Error updating template:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
   }
 }
@@ -97,12 +126,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const userId = await getCurrentUserId();
     const db = getDatabase();
 
-    // Check if template exists
+    // Check if template exists and belongs to user
     const template = db
-      .prepare('SELECT * FROM templates WHERE id = ?')
-      .get(id) as Template | undefined;
+      .prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?')
+      .get(id, userId) as Template | undefined;
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
@@ -117,6 +147,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting template:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
   }
 }

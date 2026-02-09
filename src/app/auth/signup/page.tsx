@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -12,7 +12,14 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, isLocalDev, user } = useAuth();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +30,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 6 && !isLocalDev) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -32,8 +39,11 @@ export default function SignupPage() {
 
     try {
       await signup(email, password);
-      // Redirect to login or dashboard
-      router.push('/auth/login?message=Check your email to confirm your account');
+      if (isLocalDev) {
+        router.push('/');
+      } else {
+        router.push('/auth/login?message=Check your email to confirm your account');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
     } finally {
@@ -48,6 +58,12 @@ export default function SignupPage() {
           SimpleGymTracker
         </h1>
         <h2 className="text-xl font-semibold text-gray-700 mb-6">Create Account</h2>
+
+        {isLocalDev && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4">
+            Local development mode: Using mock authentication. Click &quot;Sign up&quot; to proceed.
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -65,8 +81,9 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!isLocalDev}
+              disabled={isLocalDev}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -79,8 +96,9 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!isLocalDev}
+              disabled={isLocalDev}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -93,8 +111,9 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!isLocalDev}
+              disabled={isLocalDev}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
 

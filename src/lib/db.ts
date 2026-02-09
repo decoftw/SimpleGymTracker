@@ -18,6 +18,7 @@ function initializeDatabase(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS workout_sessions (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
       created_at TEXT NOT NULL
@@ -37,6 +38,7 @@ function initializeDatabase(database: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS templates (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
       name TEXT NOT NULL,
       created_at TEXT NOT NULL
     );

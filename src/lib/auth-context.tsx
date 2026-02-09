@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
@@ -12,53 +12,114 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  isLocalDev?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to check if Supabase is properly configured
+function isSupabaseConfigured() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) return false;
+  if (url.includes('your_supabase') || key.includes('your_supabase')) return false;
+  if (!url.startsWith('http')) return false;
+
+  return true;
+}
+
+// Mock user for local development
+const MOCK_LOCAL_USER: User = {
+  id: 'local-dev-user',
+  aud: 'authenticated',
+  role: 'authenticated',
+  email: 'dev@localhost',
+  email_confirmed_at: new Date().toISOString(),
+  phone: '',
+  confirmed_at: new Date().toISOString(),
+  last_sign_in_at: new Date().toISOString(),
+  app_metadata: {},
+  user_metadata: { name: 'Local Dev User' },
+  identities: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const isLocalDevMode = !isSupabaseConfigured();
+
+  const supabase = useMemo(() => {
+    if (isLocalDevMode) {
+      return null;
+    }
+    return createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }, [isLocalDevMode]);
 
   useEffect(() => {
+    if (isLocalDevMode) {
+      // In local dev mode, auto-authenticate with mock user
+      setUser(MOCK_LOCAL_USER);
+      setSession(null);
+      setIsLoading(false);
+      console.log('Local development mode: Using mock authentication');
+      return;
+    }
+
     // Check if user is logged in
     const getSession = async () => {
       try {
+        const sessionPromise = supabase!.auth.getSession();
+        // Set a 3-second timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session fetch timeout')), 3000)
+        );
+
         const {
           data: { session },
-        } = await supabase.auth.getSession();
+        } = await Promise.race([sessionPromise, timeoutPromise]) as any;
         setSession(session);
         setUser(session?.user ?? null);
       } catch (error) {
         console.error('Error getting session:', error);
-      } finally {
-        setIsLoading(false);
+        // Continue even if session fetch fails
       }
     };
 
     getSession();
 
     // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
+    try {
+      const {
+        data: { subscription },
+      } = supabase!.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      });
 
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
+      return () => {
+        subscription?.unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+      return undefined;
+    }
+  }, [supabase, isLocalDevMode]);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    if (isLocalDevMode) {
+      // In local dev mode, just set the mock user
+      setUser(MOCK_LOCAL_USER);
+      return;
+    }
+    const { error } = await supabase!.auth.signInWithPassword({
       email,
       password,
     });
@@ -66,7 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string) => {
-    const { error, data } = await supabase.auth.signUp({
+    if (isLocalDevMode) {
+      // In local dev mode, just set the mock user
+      setUser(MOCK_LOCAL_USER);
+      return;
+    }
+    const { error, data } = await supabase!.auth.signUp({
       email,
       password,
     });
@@ -74,15 +140,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Create user profile
     if (data.user) {
-      await supabase.from('user_profiles').insert({
+      const { error: profileError } = await (supabase!.from('user_profiles') as any).insert({
         id: data.user.id,
         email: data.user.email!,
       });
+      if (profileError) {
+        console.error('Error creating user profile:', profileError);
+        // Don't throw, as signup succeeded
+      }
     }
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
+    if (isLocalDevMode) {
+      // In local dev mode, just clear the user
+      setUser(null);
+      return;
+    }
+    const { error } = await supabase!.auth.signOut();
     if (error) throw error;
   };
 
@@ -95,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
+        isLocalDev: isLocalDevMode,
       }}
     >
       {children}

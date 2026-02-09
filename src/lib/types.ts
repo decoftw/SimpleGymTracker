@@ -1,5 +1,6 @@
 export interface WorkoutSession {
   id: string;
+  user_id: string;
   title: string;
   date: string;
   created_at: string;
@@ -19,6 +20,7 @@ export interface Exercise {
 
 export interface Template {
   id: string;
+  user_id: string;
   name: string;
   created_at: string;
   exercises?: TemplateExercise[];
@@ -31,4 +33,10 @@ export interface TemplateExercise {
   sets: number;
   reps: number;
   order_index: number;
+}
+
+export interface CreateTemplateExercise {
+  exercise_name: string;
+  sets: number;
+  reps: number;
 }

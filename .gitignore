@@ -39,3 +39,8 @@ gym-tracker.db-wal
 *.db
 *.db-shm
 *.db-wal
+
+# temp files
+tmpclaude-*
+nul
+*.code-workspace
